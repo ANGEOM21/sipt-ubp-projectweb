@@ -10,7 +10,7 @@ const NilaiMahasiswa = () => {
 
   // Get NIM from local storage if available
   const [formData, setFormData] = useState({
-    nim: localStorage.getItem('nim') || '',
+    nim: localStorage.getItem('mhs') !== null ? JSON.parse(localStorage.getItem('mhs') ?? '').id : '',
     periode: '',
     jenis: 'nilai_tengah_semester'
   });
