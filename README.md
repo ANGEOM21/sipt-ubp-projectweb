@@ -1,54 +1,110 @@
-# React + TypeScript + Vite
+# 📚 SIPT-UBP (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Project ini adalah aplikasi web berbasis **React + TypeScript + Vite** yang dikembangkan untuk Universitas Buana Perjuangan (UBP) Karawang.  
+Dibuat dengan clean architecture, state management via **Zustand**, dan sudah siap deploy ke **Vercel** 🚀.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Fitur Utama
+- 🔐 **Autentikasi** Mahasiswa
+- 🏠 **Halaman Home** dengan banner & informasi
+- 📊 **Dashboard** untuk menampilkan data akademik
+- 📑 **Nilai Mahasiswa** dengan integrasi API
+- 👤 **Profile Management**
+- ⚠️ **Not Found Page (404)** handling
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 📦 Struktur Folder
+```
+📦 sipt-ubp
+┣ 📂public            → asset publik (favicon, logo)
+┣ 📂src
+┃ ┣ 📂assets          → asset tambahan (img, svg, dll)
+┃ ┣ 📂components      → komponen global
+┃ ┃ ┣ 📂ui            → komponen UI kecil (skeleton, dll)
+┃ ┣ 📂lib             → konfigurasi axios & helper utils
+┃ ┣ 📂pages           → halaman aplikasi (Home, Dashboard, Profile, dll)
+┃ ┣ 📂store           → state management (Zustand)
+┃ ┣ 📂types           → deklarasi tipe global
+┃ ┣ 📜App.tsx         → router & layout utama
+┃ ┣ 📜main.tsx        → entry point React
+┣ 📜vite.config.ts    → konfigurasi Vite
+┣ 📜tsconfig.json     → konfigurasi TypeScript
+┣ 📜.env              → environment variables
+┗ 📜package.json      → dependencies & scripts
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ⚙️ Tech Stack
+- ⚛️ [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)  
+- 🟦 TypeScript  
+- 🪝 [Zustand](https://github.com/pmndrs/zustand) (state management)  
+- 🎨 [Tailwind CSS](https://tailwindcss.com/)  
+- 📡 Axios (API client)  
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+---
+
+## 🚀 Cara Menjalankan Lokal
+
+1. **Clone repo**
+   ```bash
+   git clone https://github.com/username/sipt-ubp.git
+   cd sipt-ubp
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Copy file `.env.example` ke `.env`** (jika tersedia) lalu isi variable environment:
+   ```
+   VITE_API_URL=https://api-sipt-proxy.vercel.app
+   ```
+
+4. **Jalankan mode development**
+
+   ```bash
+   npm run dev
+   ```
+
+   Akses di: `http://localhost:5173`
+
+5. **Build untuk production**
+
+   ```bash
+   npm run build
+   npm run preview
+   ```
+
+---
+
+## 🌐 Deployment (Vercel)
+
+Project ini sudah disiapkan untuk deploy ke **Vercel**.
+Setting build di Vercel:
+
+* **Framework Preset**: `Vite`
+* **Build Command**: `npm run build`
+* **Output Directory**: `dist`
+* **Environment Variables**: isi sesuai `.env`
+
+Setelah push ke GitHub → Vercel akan auto-build & auto-deploy.
+
+---
+
+## 📌 Catatan Developer
+
+* Case-sensitive di Linux (misal `NotFoundPage.tsx` harus konsisten)
+* Jangan commit `.env`
+* Gunakan `forceConsistentCasingInFileNames: true` di tsconfig
+
+---
+
+## 👽 Author
+
+Dibuat dengan ❤️ oleh **projectweb👽**
