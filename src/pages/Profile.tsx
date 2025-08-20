@@ -520,41 +520,67 @@ const InfoItem = ({
 		<div className={`flex ${fullWidth ? 'flex-col' : 'flex-row items-start'} gap-2 py-1`}>
 			<div className="flex items-start gap-2 flex-1">
 				<Icon className="w-4 h-4 mt-1 text-primary flex-shrink-0" />
-				<span className="font-medium text-sm text-gray-600 min-w-[120px]">{label}:</span>
+				<span className="font-medium text-sm text-gray-600 min-w-[130px] sm:min-w-[150px]">{label}:</span>
 			</div>
 			<div className={`${fullWidth ? 'ml-6' : 'flex-1'}`}>
 				{isEmail ? (
 
-
-					<div className="flex items-center gap-2">
-						<a
-							href={`mailto:${value}`}
-							className={`link link-primary text-sm ${showFullEmail ? 'whitespace-normal break-all' : 'truncate max-w-[120px]'}`}
-						>
-							{value}
-						</a>
-						<button
-							onClick={() => setShowFullEmail(!showFullEmail)}
-							className="btn btn-xs btn-ghost"
-							aria-label={showFullEmail ? "Sembunyikan email" : "Tampilkan email lengkap"}
-						>
-							{showFullEmail ? (
-								<FiChevronUp />
-							) : (
-								<FiChevronDown />
-							)}
-						</button>
-						<button
-							onClick={() => {
-								navigator.clipboard.writeText(value);
-								toast.success('Email berhasil disalin');
-							}}
-							className="btn btn-xs btn-ghost"
-							aria-label="Salin email"
-						>
-							<FiCopy />
-						</button>
-					</div>
+					<>
+						<div className="join block sm:hidden">
+							<button
+								onClick={() => setShowFullEmail(!showFullEmail)}
+								className="btn btn-xs btn-ghost join-item"
+								aria-label={showFullEmail ? "Sembunyikan email" : "Tampilkan email lengkap"}
+							>
+								{showFullEmail ? (
+									<FiChevronUp />
+								) : (
+									<FiChevronDown />
+								)}
+							</button>
+							<button
+								onClick={() => {
+									navigator.clipboard.writeText(value);
+									toast.success('Email berhasil disalin');
+								}}
+								className="btn btn-xs btn-ghost join-item"
+								aria-label="Salin email"
+							>
+								<FiCopy />
+							</button>
+						</div>
+						<div className="flex items-center gap-1">
+							<a
+								href={`mailto:${value}`}
+								className={`link link-primary text-sm ${showFullEmail ? 'whitespace-normal break-all' : 'truncate max-w-[130px] sm:min-w-[150px]'}`}
+							>
+								{value}
+							</a>
+							<div className={`join hidden sm:block ${showFullEmail ? 'join-vertical' : 'join-horizontal'}`}>
+								<button
+									onClick={() => setShowFullEmail(!showFullEmail)}
+									className="btn btn-xs btn-ghost join-item"
+									aria-label={showFullEmail ? "Sembunyikan email" : "Tampilkan email lengkap"}
+								>
+									{showFullEmail ? (
+										<FiChevronUp />
+									) : (
+										<FiChevronDown />
+									)}
+								</button>
+								<button
+									onClick={() => {
+										navigator.clipboard.writeText(value);
+										toast.success('Email berhasil disalin');
+									}}
+									className="btn btn-xs btn-ghost join-item"
+									aria-label="Salin email"
+								>
+									<FiCopy />
+								</button>
+							</div>
+						</div>
+					</>
 				) : isPhone ? (
 					<a href={`https://wa.me/${value.replace('0', '+62')}`} target="_blank" className="link link-primary text-sm">
 						{value}
