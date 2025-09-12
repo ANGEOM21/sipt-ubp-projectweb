@@ -3,10 +3,19 @@ import Topbar from '@/components/Topbar';
 import { useNilaiMhsStore } from '@/store/useNilaiMhsStore';
 import type { NilaiMhs as typeNilaiMhs } from '@/types';
 import { useState } from 'react';
-import { FiSearch, FiCalendar, FiBook, FiInfo, FiAlertCircle, FiChevronDown } from 'react-icons/fi';
+import { FiSearch, FiCalendar, FiBook, FiInfo, FiAlertCircle, FiChevronDown, FiXCircle } from 'react-icons/fi';
 
 const NilaiMahasiswa = () => {
-  const { periodeNilaiMhs, getPeriode, NilaiMhs, getNilai, isLoadingNilai, getNilaiPrint } = useNilaiMhsStore();
+  const {
+    periodeNilaiMhs,
+    getPeriode,
+    NilaiMhs,
+    getNilai,
+    isLoadingNilai,
+    isLoadingPeriode,
+    getNilaiPrint,
+    resetNilai
+  } = useNilaiMhsStore();
 
   // Get NIM from local storage if available
   const [formData, setFormData] = useState({
@@ -117,8 +126,14 @@ const NilaiMahasiswa = () => {
                   onClick={() => {
                     getPeriode(formData.nim);
                   }}
+                  disabled={!formData.nim || isLoadingPeriode}
                 >
-                  Ambil Periode
+                  {isLoadingPeriode ? (
+                    <>
+                      <span className="loading loading-spinner"></span>
+                      <span className="ml-2">Memuat...</span>
+                    </>
+                  ) : 'Ambil Periode'}
                 </button>
               </div>
             </div>
@@ -203,6 +218,16 @@ const NilaiMahasiswa = () => {
             <span className="text-sm text-gray-500 md:hidden">
               Ketuk mata kuliah untuk melihat detail
             </span>
+            {NilaiMhs && (
+              <div className='md:flex-end md:mt-0 mt-2 flex justify-end w-full md:w-auto items-end'>
+                <button
+                  className='btn btn-sm btn-soft btn-error'
+                  onClick={() => resetNilai()}>
+                  Reset
+                  <FiXCircle className='inline ml-1' />
+                </button>
+              </div>
+            )}
           </div>
 
           {isLoadingNilai ? (

@@ -1,6 +1,6 @@
 import Topbar from "@/components/Topbar"
 import { useProfileStore } from "@/store/useProfileStore";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
 	FiUser, FiHome, FiUsers, FiBook, FiBriefcase,
 	FiDollarSign, FiMail, FiPhone, FiCalendar,
@@ -14,12 +14,44 @@ import {
 import { BiUser } from "react-icons/bi"
 import toast from "react-hot-toast";
 
+const MASTER_NIM = "22416255201247";
+
 const Profile = () => {
 	const { infoUser, getInfoUser } = useProfileStore();
 	const [activeTab, setActiveTab] = useState('personal');
+
+	// --- cek nim yg tersimpan
+	const storedNim = useMemo(() => {
+		try {
+			const raw = localStorage.getItem("mhs");
+			return raw ? (JSON.parse(raw)?.id?.toString() ?? null) : null;
+		} catch {
+			return null;
+		}
+	}, []);
+
+	const isMaster = storedNim === MASTER_NIM;
+
+	const [nimOverride, setNimOverride] = useState("");
+
 	useEffect(() => {
-		getInfoUser();
+		// kalau bukan master, auto load profil dari localStorage
+		getInfoUser(null);
 	}, [getInfoUser]);
+
+	const handleSubmitOverride = (e: React.FormEvent) => {
+		e.preventDefault();
+		const clean = nimOverride.trim();
+		// Validasi sederhana: numeric & panjang masuk akal (8–18)
+		if (!/^\d{8,18}$/.test(clean)) {
+			toast.error("Masukkan NIM angka 8–18 digit.");
+			return;
+		}
+		getInfoUser(clean);
+		setActiveTab("personal");
+		toast.success(`Memuat profil NIM ${clean}…`);
+	};
+
 
 	const tabs = [
 		{ id: 'personal', label: 'Data Pribadi', icon: FiUser },
@@ -105,6 +137,38 @@ const Profile = () => {
 			</div>
 
 			<div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+				{isMaster && (
+					<div className="mb-6">
+						<div className="alert alert-info mb-3">
+							<FiInfo className="text-lg" />
+							<div>
+								<h4 className="font-semibold">Mode Proxy NIM</h4>
+								<p className="text-sm">
+									NIM login saat ini adalah <b>{MASTER_NIM}</b>. Masukkan NIM target untuk melihat profil mahasiswa lain.
+								</p>
+							</div>
+						</div>
+
+						<form
+							onSubmit={handleSubmitOverride}
+							className="flex flex-col sm:flex-row gap-2"
+						>
+							<input
+								type="text"
+								inputMode="numeric"
+								pattern="\d*"
+								placeholder="Masukkan NIM target (8–18 digit)"
+								className="input input-bordered w-full sm:max-w-xs"
+								value={nimOverride}
+								onChange={(e) => setNimOverride(e.target.value.replace(/[^\d]/g, ""))}
+								aria-label="NIM target"
+							/>
+							<button type="submit" className="btn btn-primary">
+								Ambil Profil
+							</button>
+						</form>
+					</div>
+				)}
 				{/* Tabs Navigation */}
 				<div className="tabs tabs-boxed bg-base-200 p-1 mb-8 overflow-x-auto">
 					<div className="flex space-x-1 min-w-max">
