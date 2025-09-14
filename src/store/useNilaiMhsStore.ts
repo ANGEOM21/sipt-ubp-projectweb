@@ -60,7 +60,7 @@ export const useNilaiMhsStore = create<NilaiMhsStore>((set) => ({
 				`/mahasiswa/nilai/periode-mahasiswa/${nim}`
 			);
       
-      if (res.data.status_code && res.data.status_code !== "200") {
+      if (res.data.status_code && res.data.status_code !== "200" && res.data.status_code !== "000") {
         console.error("Error during getPeriode:", res.data.messages || "Unknown error");
         toast.error(res.data.messages || "Terjadi kesalahan.");
         set({ isLoadingPeriode: false });
@@ -111,7 +111,6 @@ export const useNilaiMhsStore = create<NilaiMhsStore>((set) => ({
 				}
 			});
 
-			// Kadang server balikin JSON (status_code: 401/403) meski kita minta blob
 			if (res.data.type === "application/json") {
 				const text = await res.data.text();
 				try {
@@ -139,5 +138,5 @@ export const useNilaiMhsStore = create<NilaiMhsStore>((set) => ({
 		}
 	},
 
-	resetNilai: () => set({ NilaiMhs: null })
+	resetNilai: () => set({ NilaiMhs: null, periodeNilaiMhs: null})
 }));

@@ -93,6 +93,16 @@ const NilaiMahasiswa = () => {
     );
   };
 
+  // Handle Reset Nilai and Periode
+  const resetNilaiAndPeriode = () => {
+    setFormData(prev => ({
+      ...prev,
+      periode: '',
+      jenis: 'nilai_tengah_semester'
+    }));
+    resetNilai();
+  }
+
   return (
     <div className="min-h-screen bg-base-100">
       <Topbar />
@@ -104,64 +114,69 @@ const NilaiMahasiswa = () => {
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* NIM Input */}
-            <div className="form-control flex flex-col">
-              <label className="label">
-                <span className="label-text flex items-center gap-2">
-                  <FiSearch /> NIM Mahasiswa
-                </span>
-              </label>
-              <div className='join'>
-                <input
-                  type="text"
-                  name="nim"
-                  value={formData.nim}
-                  onChange={handleChange}
-                  placeholder="Masukkan NIM"
-                  className="input input-bordered w-full join-item"
-                  required
-                />
-                <button
-                  type="button"
-                  className='btn btn-primary join-item'
-                  onClick={() => {
-                    getPeriode(formData.nim);
-                  }}
-                  disabled={!formData.nim || isLoadingPeriode}
-                >
-                  {isLoadingPeriode ? (
-                    <>
-                      <span className="loading loading-spinner"></span>
-                      <span className="ml-2">Memuat...</span>
-                    </>
-                  ) : 'Ambil Periode'}
-                </button>
+            {!NilaiMhs && (
+              <div className="form-control flex flex-col">
+                <label className="label">
+                  <span className="label-text flex items-center gap-2">
+                    <FiSearch /> NIM Mahasiswa
+                  </span>
+                </label>
+                <div className='join'>
+                  <input
+                    type="text"
+                    name="nim"
+                    value={formData.nim}
+                    onChange={handleChange}
+                    placeholder="Masukkan NIM"
+                    className="input input-bordered w-full join-item"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className='btn btn-primary join-item'
+                    onClick={() => {
+                      getPeriode(formData.nim);
+                    }}
+                    disabled={!formData.nim || isLoadingPeriode}
+                  >
+                    {isLoadingPeriode ? (
+                      <>
+                        <span className="loading loading-spinner"></span>
+                        <span className="ml-2">Memuat...</span>
+                      </>
+                    ) : 'Ambil Periode'}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {periodeNilaiMhs && (
               <>
                 {/* Periode Select */}
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text flex items-center gap-2">
-                      <FiCalendar /> Periode Akademik
-                    </span>
-                  </label>
-                  <select
-                    name="periode"
-                    value={formData.periode}
-                    onChange={handleChange}
-                    className="select select-bordered w-full"
-                    required
-                  >
-                    <option value="">Pilih Periode</option>
-                    {periodeNilaiMhs.data.map((option, index) => (
-                      <option key={index} value={option.periode}>
-                        Periode - {option.periode}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {!NilaiMhs && (
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text flex items-center gap-2">
+                        <FiCalendar /> Periode Akademik
+                      </span>
+                    </label>
+                    <select
+                      name="periode"
+                      value={formData.periode}
+                      onChange={handleChange}
+                      className="select select-bordered w-full"
+                      required
+                    >
+                      <option value="">Pilih Periode</option>
+                      {periodeNilaiMhs.data.map((option, index) => (
+                        <option key={index} value={option.periode}>
+                          Periode - {option.periode}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text">Jenis Nilai</span>
@@ -214,7 +229,9 @@ const NilaiMahasiswa = () => {
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
 
           <div className='mb-4 flex flex-col md:flex-row items-start justify-between'>
-            <h2 className="text-lg sm:text-xl font-semibold">Nilai Periode {formData.periode}</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">
+              {NilaiMhs ? `Hasil Pencarian Nilai` : 'Data Nilai Mahasiswa'}
+            </h2>
             <span className="text-sm text-gray-500 md:hidden">
               Ketuk mata kuliah untuk melihat detail
             </span>
@@ -222,7 +239,7 @@ const NilaiMahasiswa = () => {
               <div className='md:flex-end md:mt-0 mt-2 flex justify-end w-full md:w-auto items-end'>
                 <button
                   className='btn btn-sm btn-soft btn-error'
-                  onClick={() => resetNilai()}>
+                  onClick={() => resetNilaiAndPeriode()}>
                   Reset
                   <FiXCircle className='inline ml-1' />
                 </button>
