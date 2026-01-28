@@ -7,7 +7,7 @@ const ImageFromURL = () => {
 	useEffect(() => {
 		const getImageFromUrl = async () => {
 			try {
-				const res = await axiosInstance.get("https://api-gateway.ubpkarawang.ac.id/upload/banner/e0b2fba8030b1a535e0a36f7c4c351fc.jpg")
+				const res = await axiosInstance.get("https://api-gateway.ubpkarawang.ac.id/upload/banner/p")
 
 				if (!res.data) throw new Error("Gagal fetch");
 

@@ -44,6 +44,7 @@ export interface User {
 	jenjang_pendidikan_ibu: string | null;
 	pekerjaan_ibu: string | null;
 	prodi: string | null;
+	tahun_masuk: string | null;
 	agama: string | null;
 	id_agama: string | null;
 	kecamatan: string | null;

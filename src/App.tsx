@@ -7,6 +7,8 @@ import toast from "react-hot-toast"
 import NilaiMahasiswa from "@/pages/NilaiMahasiswa"
 import Profile from "@/pages/Profile"
 import NotFoundPage from "@/pages/NotFoundPage"
+import MahasiswaKurikulum from "./pages/MahasiswaKurikulum"
+import AktivitasPerkuliahan from "./pages/AktivitasPerkuliahan"
 
 const App = () => {
   const { authUser, checkAuth } = useAuthStore()
@@ -32,6 +34,14 @@ const App = () => {
       <Route
         path="/profile"
         element={authUser ? <Profile /> : <Navigate to="/login" />}
+      />
+      <Route
+        path="/mahasiswa/kurikulum"
+        element={authUser ? <MahasiswaKurikulum /> : <Navigate to="/login" />}
+      />
+      <Route
+        path="/aktivitas-perkuliahan"
+        element={authUser ? <AktivitasPerkuliahan /> : <Navigate to="/login" />}
       />
       <Route
         path="/login"
