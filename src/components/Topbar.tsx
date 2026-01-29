@@ -1,8 +1,10 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { Link, useLocation } from "react-router-dom";
-import { 
-    FiHome, FiGrid, FiUser, FiLogOut, 
+import {
+    FiHome, FiGrid, FiUser, FiLogOut,
     FiBook, FiLayers,
+    FiLogIn,
+    FiDollarSign,
 } from "react-icons/fi";
 
 const Topbar = () => {
@@ -15,7 +17,8 @@ const Topbar = () => {
     const appLinks = [
         { name: "Nilai Mahasiswa", path: "/nilai-mhs", icon: FiBook },
         { name: "Kurikulum", path: "/mahasiswa/kurikulum", icon: FiLayers },
-		{ name: "Aktivitas", path: "/aktivitas-perkuliahan", icon: FiBook },
+        { name: "Aktivitas", path: "/aktivitas-perkuliahan", icon: FiBook },
+        { name: "Bayar UKT", path: "/bayar-ukt-mahasiswa", icon: FiDollarSign },
     ];
 
     return (
@@ -52,7 +55,7 @@ const Topbar = () => {
                             <ul className="p-2 bg-white shadow-xl border border-slate-100 rounded-xl min-w-[200px] mt-2">
                                 {appLinks.map((link) => (
                                     <li key={link.path}>
-                                        <Link 
+                                        <Link
                                             to={link.path}
                                             className={`mb-1 ${isActive(link.path) ? activeClass : "hover:bg-slate-50"}`}
                                         >
@@ -69,7 +72,7 @@ const Topbar = () => {
             <div className="navbar-end gap-3">
                 <div className="hidden md:flex flex-col items-end mr-2">
                     <span className="text-sm font-bold text-slate-700 truncate max-w-[150px]">
-                        {authUser?.nama || "Mahasiswa"}
+                        {authUser?.nama || ""}
                     </span>
                 </div>
 
@@ -85,7 +88,7 @@ const Topbar = () => {
                             </div>
 
                             <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow-2xl bg-white rounded-xl w-64 border border-slate-100">
-                                
+
                                 <li className="menu-title px-4 py-3 border-b border-slate-100 mb-2 lg:hidden">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-slate-800 font-bold text-base">{authUser?.nama}</span>
@@ -107,14 +110,14 @@ const Topbar = () => {
                                                 <span className="group-open:font-semibold group-open:text-blue-600">Apps</span>
                                             </div>
                                         </summary>
-                                        <ul className="before:bg-slate-200"> 
+                                        <ul className="before:bg-slate-200">
                                             {appLinks.map((link) => (
                                                 <li key={link.path}>
-                                                    <Link 
+                                                    <Link
                                                         to={link.path}
                                                         className={`py-2 pl-4 rounded-lg my-0.5 ${isActive(link.path) ? "bg-blue-50 text-blue-600 font-medium" : "text-slate-500 hover:text-slate-700"}`}
                                                     >
-														<link.icon className="text-sm" />
+                                                        <link.icon className="text-sm" />
                                                         {link.name}
                                                     </Link>
                                                 </li>
@@ -144,8 +147,19 @@ const Topbar = () => {
                             </ul>
                         </div>
                     ) : (
-                        <Link to="/login" className="btn btn-primary bg-blue-600 border-blue-600 hover:bg-blue-700 text-white px-6 rounded-full font-bold shadow-md shadow-blue-200">
-                            Login
+                        <Link
+                            to="/login"
+                            className="
+                                group
+                                flex items-center gap-2
+                                px-6 py-2
+                                font-semibold
+                                text-blue-600
+                                transition-all duration-300
+                            "
+                        >
+                            <FiLogIn className="text-lg transition-transform duration-300 group-hover:translate-x-1" />
+                            In
                         </Link>
                     )}
                 </div>

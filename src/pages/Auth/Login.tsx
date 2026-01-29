@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
-import { FiLock, FiMail, FiEye, FiEyeOff, FiAlertTriangle } from "react-icons/fi";
+import { FiLock, FiMail, FiEye, FiEyeOff, FiAlertTriangle, FiHome } from "react-icons/fi";
 import Footer from "@/components/Footer";
 
 const Login = () => {
@@ -41,7 +41,20 @@ const Login = () => {
 					</a>
 				</div>
 				<div className="flex-none gap-2">
-					<Link to="/">Home</Link>
+					<Link
+						to="/"
+						className="
+													group
+													flex items-center gap-2
+													px-6 py-2
+													font-semibold
+													text-blue-600
+													transition-all duration-300
+												"
+					>
+						<FiHome className="text-lg transition-transform duration-300 group-hover:translate-x-1" />
+						Home
+					</Link>
 				</div>
 			</div>
 

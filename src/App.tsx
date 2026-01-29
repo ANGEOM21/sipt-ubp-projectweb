@@ -9,6 +9,7 @@ import Profile from "@/pages/Profile"
 import NotFoundPage from "@/pages/NotFoundPage"
 import MahasiswaKurikulum from "./pages/MahasiswaKurikulum"
 import AktivitasPerkuliahan from "./pages/AktivitasPerkuliahan"
+import BayarUkt from "./pages/BayarUkt"
 
 const App = () => {
   const { authUser, checkAuth } = useAuthStore()
@@ -42,6 +43,10 @@ const App = () => {
       <Route
         path="/aktivitas-perkuliahan"
         element={authUser ? <AktivitasPerkuliahan /> : <Navigate to="/login" />}
+      />
+      <Route
+        path="/bayar-ukt-mahasiswa"
+        element={authUser ? <BayarUkt /> : <Navigate to="/login" />}
       />
       <Route
         path="/login"
