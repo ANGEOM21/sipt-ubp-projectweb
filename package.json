@@ -4,12 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/core": "^8.0.2",
+    "@capacitor/ios": "^8.0.2",
     "@tailwindcss/vite": "^4.1.10",
     "axios": "^1.10.0",
     "classnames": "^2.5.1",
@@ -24,6 +27,8 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.2",
     "@eslint/js": "^9.25.0",
     "@types/date-fns": "^2.5.3",
     "@types/node": "^24.0.3",
