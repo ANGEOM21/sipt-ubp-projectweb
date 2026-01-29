@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { axiosInstance } from "@/lib/axios";
 import toast from "react-hot-toast";
 
-// ... (Interface TagihanOverview, TagihanDetail, TagihanData, ResponseTagihan SAMA SEPERTI SEBELUMNYA) ...
 export interface TagihanOverview {
   nim: string;
   periode: string;
@@ -27,10 +26,41 @@ export interface TagihanDetail {
   cicilan: string;
 }
 
+export interface TunggakanOverview {
+  nim: string;
+  periode: string;
+  create_date: string;
+  total_tunggakan: string;
+  total_bayar: number | string;
+  sisa_tunggakan: number | string;
+}
+
+export interface ActiveVaData {
+  trx_id: string;
+  virtual_account: string;
+  trx_amount: string;
+  customer_name: string;
+  datetime_expired: string;
+  description: string;
+  status: string;
+  channel: string;
+  update_info?: string;
+  nim?: string;
+  customer_email?: string;
+  customer_phone?: string;
+}
+
 interface TagihanData {
   tagih: {
     tagih_nim: TagihanOverview;
     detail_tagihan: TagihanDetail[];
+  };
+}
+
+interface TunggakanData {
+  tunggak: {
+    tunggak_nim: TunggakanOverview;
+    detail_tunggak: any[]; 
   };
 }
 
@@ -40,78 +70,133 @@ interface ResponseTagihan {
   data: TagihanData;
 }
 
-// Interface Store
+interface ResponseTunggakan {
+  messages: string;
+  status_code: string;
+  data: TunggakanData;
+}
+
+interface ResponseCekVa {
+  messages: string;
+  status_code: string;
+  data: ActiveVaData;
+}
+
+
 interface TagihanStore {
+  // State Data
   tagihanData: TagihanData | null;
+  tunggakanData: TunggakanData | null;
+  activeVa: ActiveVaData | null;
+  
   isLoading: boolean;
-  isCreatingVa: boolean; // State loading khusus buat bayar
+  isCreatingVa: boolean;
+  
   getTagihan: (nimPayload: string | null) => Promise<void>;
+  getTunggakan: (nimPayload: string | null) => Promise<void>;
+  cekVa: (nimPayload: string | null) => Promise<void>;
   createVaMdr: (payload: { nim: string; nominal: string; periode: string }) => Promise<void>;
   resetTagihan: () => void;
 }
 
-export const useTagihanStore = create<TagihanStore>((set) => ({
+
+export const useTagihanStore = create<TagihanStore>((set, get) => ({
   tagihanData: null,
+  tunggakanData: null,
+  activeVa: null,
   isLoading: false,
   isCreatingVa: false,
 
-  getTagihan: async (nimPayload: string | null) => {
+  getTagihan: async (nimPayload) => {
     set({ isLoading: true });
-
-    let storedNim: string | null = null;
-    try {
-      const raw = localStorage.getItem("mhs");
-      storedNim = raw ? (JSON.parse(raw)?.id ?? null) : null;
-    } catch { storedNim = null; }
-
-    const nim = (nimPayload ?? storedNim)?.toString().trim() || null;
+    const nim = resolveNim(nimPayload);
     
-    if (!nim) {
-      set({ tagihanData: null, isLoading: false });
-      return;
+    if (!nim) { 
+      set({ tagihanData: null, isLoading: false }); 
+      return; 
     }
 
     try {
-      const res = await axiosInstance.get<ResponseTagihan>(
-        `/mahasiswa/administrasi/get-tagihan-bni/${nim}`
-      );
+      const res = await axiosInstance.get<ResponseTagihan>(`/mahasiswa/administrasi/get-tagihan-bni/${nim}`);
       
-      const responseData = res.data;
-      if (responseData.status_code === '000' && responseData.data) {
-        set({ tagihanData: responseData.data });
-      } else if (responseData.status_code === '403') {
-        set({ tagihanData: null });
+      if (res.data.status_code === '000' && res.data.data) {
+        set({ tagihanData: res.data.data });
       } else {
         set({ tagihanData: null });
-        toast.error(responseData.messages || "Gagal memuat data.");
       }
-    } catch (error: unknown) {
-      console.error(error);
-      set({ tagihanData: null });
-      toast.error("Terjadi kesalahan koneksi.");
-    } finally {
-      set({ isLoading: false });
+    } catch (e) { 
+      console.error(e); 
+      set({ tagihanData: null }); 
+    } finally { 
+      set({ isLoading: false }); 
     }
   },
 
-  // --- FUNGSI BARU: CREATE VA ---
+  getTunggakan: async (nimPayload) => {
+      const nim = resolveNim(nimPayload);
+      if (!nim) return;
+
+      try {
+          const res = await axiosInstance.get<ResponseTunggakan>(`/mahasiswa/administrasi/get-tunggakan-bni/${nim}`);
+          if (res.data.status_code === '000' && res.data.data) {
+              set({ tunggakanData: res.data.data });
+          } else {
+              set({ tunggakanData: null });
+          }
+      } catch (e) { 
+          console.error(e); 
+          set({ tunggakanData: null }); 
+      }
+  },
+
+  cekVa: async (nimPayload) => {
+      const nim = resolveNim(nimPayload);
+      if (!nim) return;
+
+      try {
+          const res = await axiosInstance.get<ResponseCekVa>(`/mahasiswa/administrasi/cek-va-bni/${nim}`);
+          if (res.data.status_code === '000' && res.data.data) {
+              set({ activeVa: res.data.data });
+          } else {
+              set({ activeVa: null });
+          }
+      } catch (e) { 
+          console.error(e); 
+          set({ activeVa: null }); 
+      }
+  },
+
   createVaMdr: async (payload) => {
     set({ isCreatingVa: true });
     try {
-      // POST Request
-      const res = await axiosInstance.post('/mahasiswa/administrasi/create-va-mdr', payload);
-      
-      console.log("👇 RESPONSE CREATE VA MDR 👇");
-      console.log(res.data);
-      console.log("----------------------------");
+      const formData = new FormData();
+      formData.append('nim', payload.nim);
+      formData.append('periode', payload.periode);
+      formData.append('total_bayar', payload.nominal); 
 
-      // Cek response (sesuaikan logic ini dengan format response API nanti)
-      if (res.data?.status_code === '000' || res.data?.messages === 'success') {
-          toast.success("Virtual Account berhasil dibuat! Cek Console.");
-      } else {
-          toast(res.data?.messages || "Cek console untuk detail response.");
-      }
+      const res = await axiosInstance.post('/mahasiswa/administrasi/create-va-mdr', formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        }
+      });
       
+      if (
+          res.data?.status_code === '000' || 
+          res.data?.status_code === '200' || 
+          res.data?.messages?.toLowerCase().includes('success') ||
+          res.data?.messages?.includes('Va') 
+      ) {
+          toast.success("Virtual Account berhasil dibuat! Memuat ulang...");
+          
+          get().cekVa(payload.nim);
+
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+
+      } else {
+          toast.error(res.data?.messages || "Gagal membuat VA.");
+      }
     } catch (error) {
       console.error("Error createVaMdr:", error);
       toast.error("Gagal membuat permintaan pembayaran.");
@@ -120,5 +205,14 @@ export const useTagihanStore = create<TagihanStore>((set) => ({
     }
   },
 
-  resetTagihan: () => set({ tagihanData: null })
+  resetTagihan: () => set({ tagihanData: null, tunggakanData: null, activeVa: null })
 }));
+
+const resolveNim = (payload: string | null) => {
+    let storedNim: string | null = null;
+    try {
+        const raw = localStorage.getItem("mhs");
+        storedNim = raw ? (JSON.parse(raw)?.id ?? null) : null;
+    } catch { }
+    return (payload ?? storedNim)?.toString().trim() || null;
+};

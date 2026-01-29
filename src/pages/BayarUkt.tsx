@@ -4,15 +4,24 @@ import Topbar from "@/components/Topbar";
 import { useKwitansiStore } from "@/store/useKwitansiStore";
 import { useTagihanStore } from "@/store/useTagihanStore";
 import {
-    FiSearch, FiClock, FiCheckCircle, FiWifi, FiArrowRight, FiFileText, FiDownload
+    FiSearch, FiClock, FiCheckCircle, FiWifi, FiArrowRight,
+    FiFileText, FiDownload, FiAlertTriangle, FiCopy
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 
 const BayarUkt = () => {
-    const { tagihanData, getTagihan, createVaMdr, isLoading, isCreatingVa } = useTagihanStore();
-    const [nimInput, setNimInput] = useState("");
-    const [paymentAmount, setPaymentAmount] = useState("");
+    const {
+        tagihanData, tunggakanData, activeVa,
+        isLoading, isCreatingVa
+    } = useTagihanStore();
+
+    const { getTagihan, getTunggakan, cekVa, createVaMdr } = useTagihanStore();
     const { kwitansiList, getKwitansi, isLoadingKwitansi } = useKwitansiStore();
+
+    const [nimInput, setNimInput] = useState("");
+    const [tagihanAmount, setTagihanAmount] = useState("");
+    const [tunggakanAmount, setTunggakanAmount] = useState("");
+    const [timeLeft, setTimeLeft] = useState<string>("");
 
     const MASTER_NIM = ["22416255201247", "22416255201162"];
 
@@ -28,34 +37,70 @@ const BayarUkt = () => {
     useEffect(() => {
         if (storedNim) {
             setNimInput(storedNim);
-            getTagihan(storedNim);
-            getKwitansi(storedNim);
+            // Panggil langsung dari store state untuk menghindari dependency cycle
+            useTagihanStore.getState().getTagihan(storedNim);
+            useTagihanStore.getState().getTunggakan(storedNim);
+            useTagihanStore.getState().cekVa(storedNim);
+            useKwitansiStore.getState().getKwitansi(storedNim);
         }
-    }, [getTagihan, getKwitansi, storedNim]);
+    }, [storedNim]);
 
     const handleFetch = (e: React.FormEvent) => {
         e.preventDefault();
         if (nimInput) {
             getTagihan(nimInput);
+            getTunggakan(nimInput);
+            cekVa(nimInput);
             getKwitansi(nimInput);
         }
     };
 
-    const handlePayment = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!tagihanData?.tagih?.tagih_nim) return;
-        
-        const cleanAmount = paymentAmount.replace(/\D/g, '');
-        if (!cleanAmount || parseInt(cleanAmount) < 10000) {
-            toast.error("Minimal pembayaran Rp 10.000");
+    useEffect(() => {
+        if (!activeVa || !activeVa.datetime_expired) {
+            setTimeLeft("");
             return;
         }
+        const interval = setInterval(() => {
+            const now = new Date().getTime();
+            const expireTime = new Date(activeVa.datetime_expired).getTime();
+            const distance = expireTime - now;
+            if (distance < 0) {
+                clearInterval(interval);
+                setTimeLeft("EXPIRED");
+            } else {
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                setTimeLeft(`${hours}j ${minutes}m ${seconds}d`);
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [activeVa]);
 
+    const handlePaymentTagihan = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!tagihanData?.tagih?.tagih_nim) return;
+
+        const cleanAmount = tagihanAmount.replace(/\D/g, '');
         createVaMdr({
             nim: tagihanData.tagih.tagih_nim.nim,
             periode: tagihanData.tagih.tagih_nim.periode,
             nominal: cleanAmount
         });
+        setTagihanAmount("");
+    };
+
+    const handlePaymentTunggakan = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!tagihanData?.tagih?.tagih_nim) return;
+
+        const cleanAmount = tunggakanAmount.replace(/\D/g, '');
+        createVaMdr({
+            nim: tagihanData.tagih.tagih_nim.nim,
+            periode: "tunggakan",
+            nominal: cleanAmount
+        });
+        setTunggakanAmount("");
     };
 
     const formatRupiah = (angka: string | number) => {
@@ -68,17 +113,17 @@ const BayarUkt = () => {
         }).format(number);
     };
 
-    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>, setFunc: React.Dispatch<React.SetStateAction<string>>) => {
         const raw = e.target.value.replace(/\D/g, '');
-        if (raw === "") {
-            setPaymentAmount("");
-        } else {
-            setPaymentAmount(formatRupiah(raw).replace("Rp", "").trim());
-        }
+        if (raw === "") setFunc("");
+        else setFunc(formatRupiah(raw).replace("Rp", "").trim());
     };
 
     const overview = tagihanData?.tagih?.tagih_nim;
     const details = tagihanData?.tagih?.detail_tagihan;
+    const tunggakan = tunggakanData?.tunggak?.tunggak_nim;
+
+    const hasTunggakan = tunggakan && parseFloat(tunggakan.sisa_tunggakan.toString()) > 0;
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
@@ -89,9 +134,8 @@ const BayarUkt = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-800">Pembayaran UKT</h1>
-                        <p className="text-slate-500 text-sm">Kelola tagihan dan pembayaran semester</p>
+                        <p className="text-slate-500 text-sm">Kelola tagihan, tunggakan, dan riwayat pembayaran</p>
                     </div>
-                    
                     {isMaster && (
                         <form onSubmit={handleFetch} className="flex gap-2">
                             <input
@@ -111,7 +155,7 @@ const BayarUkt = () => {
                 {isLoading ? (
                     <div className="text-center py-20">
                         <span className="loading loading-spinner loading-lg text-blue-600"></span>
-                        <p className="mt-4 text-slate-500 font-medium">Mengambil data tagihan...</p>
+                        <p className="mt-4 text-slate-500 font-medium">Mengambil data...</p>
                     </div>
                 ) : overview && details ? (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
@@ -122,7 +166,6 @@ const BayarUkt = () => {
                                 <div className="absolute inset-0 bg-gradient-to-br from-[#003d79] via-[#0052a5] to-[#002b55]"></div>
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
                                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-400/10 rounded-full blur-2xl -ml-10 -mb-10"></div>
-                                <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-white/5 transform -skew-y-12"></div>
 
                                 <div className="absolute inset-0 p-6 flex flex-col justify-between text-white font-sans">
                                     <div className="flex justify-between items-start">
@@ -130,13 +173,10 @@ const BayarUkt = () => {
                                             <div className="absolute top-1/2 left-0 w-full h-[1px] bg-yellow-800/40"></div>
                                             <div className="absolute top-0 left-1/3 w-[1px] h-full bg-yellow-800/40"></div>
                                             <div className="absolute top-0 right-1/3 w-[1px] h-full bg-yellow-800/40"></div>
-                                            <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 border border-yellow-800/40 rounded-sm"></div>
                                         </div>
                                         <div className="text-right flex flex-col items-end">
                                             <h3 className="font-bold italic text-xl tracking-wider drop-shadow-md">mandiri</h3>
-                                            <div className="flex items-center gap-1 mt-1 opacity-80">
-                                                <FiWifi className="transform rotate-90 text-lg" />
-                                            </div>
+                                            <div className="flex items-center gap-1 mt-1 opacity-80"><FiWifi className="transform rotate-90 text-lg" /></div>
                                         </div>
                                     </div>
                                     <div className="mt-2">
@@ -161,120 +201,183 @@ const BayarUkt = () => {
                                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
                             </div>
 
-                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3 text-sm">
-                                <div className="flex justify-between border-b border-slate-100 pb-2">
-                                    <span className="text-slate-500">Periode</span>
-                                    <span className="font-bold text-slate-700">{overview.periode}</span>
+                            {activeVa && activeVa.status === 'belum' ? (
+                                <div className="bg-white rounded-xl border-2 border-blue-200 shadow-md overflow-hidden relative">
+                                    <div className="bg-orange-400 text-white px-4 py-2 text-sm font-bold flex justify-between items-center">
+                                        <span className="flex items-center gap-2"><FiClock /> Menunggu Pembayaran</span>
+                                        <span className="font-mono">{timeLeft}</span>
+                                    </div>
+                                    <div className="p-5 space-y-4">
+                                        <div>
+                                            <p className="text-xs text-slate-500 mb-1">Nomor Virtual Account</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-xl font-bold text-slate-800 tracking-wider font-mono">{activeVa.virtual_account}</p>
+                                                <button
+                                                    onClick={() => { navigator.clipboard.writeText(activeVa.virtual_account); toast.success("VA Disalin"); }}
+                                                    className="btn btn-xs btn-circle btn-ghost text-blue-600"
+                                                >
+                                                    <FiCopy />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-end border-t border-slate-100 pt-3">
+                                            <div>
+                                                <p className="text-xs text-slate-500">Nominal</p>
+                                                <p className="text-lg font-bold text-orange-600">{activeVa.trx_amount}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] text-slate-400">Batas Waktu</p>
+                                                <p className="text-xs font-medium text-slate-700">
+                                                    {new Date(activeVa.datetime_expired).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between border-b border-slate-100 pb-2">
-                                    <span className="text-slate-500">Status MHS</span>
-                                    <span className={`badge badge-sm ${overview.status_aktif === 'Aktif' ? 'badge-success text-white' : 'badge-warning'}`}>
-                                        {overview.status_aktif}
-                                    </span>
+                            ) : (
+                                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3 text-sm">
+                                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                                        <span className="text-slate-500">Periode Tagihan</span>
+                                        <span className="font-bold text-slate-700">{overview.periode}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                                        <span className="text-slate-500">Status Akademik</span>
+                                        <span className={`badge badge-sm ${overview.status_aktif === 'Aktif' ? 'badge-success text-white' : 'badge-warning'}`}>
+                                            {overview.status_aktif}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500">Total Tagihan Sem Ini</span>
+                                        <span className="font-medium">{formatRupiah(overview.total_tagihan)}</span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Total Tagihan</span>
-                                    <span className="font-medium">{formatRupiah(overview.total_tagihan)}</span>
-                                </div>
-                            </div>
+                            )}
+
                         </div>
 
-                        <div className="lg:col-span-2 space-y-6">
+                        <div className="lg:col-span-2 space-y-8">
 
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                                    <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                                        <FiClock className="text-blue-600" /> Rincian Cicilan
+                            <div className="space-y-4">
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                                        <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                            <FiClock className="text-blue-600" /> Rincian Cicilan
+                                        </h3>
+                                        <span className="text-xs text-slate-500 bg-white px-2 py-1 rounded border border-slate-200">
+                                            Periode {overview.periode}
+                                        </span>
+                                    </div>
+
+                                    <div className="divide-y divide-slate-100 max-h-[300px] overflow-y-auto">
+                                        {details.map((item, index) => {
+                                            const isLunas = item.sisa_tagihan === "0";
+                                            return (
+                                                <div key={index} className="p-4 hover:bg-slate-50 transition-colors flex flex-row items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 
+                                                            ${isLunas ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+                                                            {isLunas ? <FiCheckCircle /> : <FiClock />}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-800 text-sm">Cicilan {item.cicilan.replace('C', '')}</p>
+                                                            <p className="text-xs text-slate-500">{formatRupiah(item.total_tagihan)}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                        {isLunas ? (
+                                                            <span className="badge badge-success badge-sm text-white border-none">LUNAS</span>
+                                                        ) : (
+                                                            <span className="badge badge-ghost bg-slate-200 text-slate-500 badge-sm border-none">BELUM</span>
+                                                        )}
+                                                        <p className="text-[10px] text-slate-400 text-right">
+                                                            {isLunas ? (item.last_payment ? new Date(item.last_payment).toLocaleDateString() : 'Lunas') : (parseFloat(item.total_bayar) > 0 ? `Masuk: ${formatRupiah(item.total_bayar)}` : '-')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+                                    <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
+                                        <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
+                                        Bayar Tagihan Semester
                                     </h3>
-                                    <span className="text-xs text-slate-500 font-mono bg-white px-2 py-1 rounded border border-slate-200">
-                                        C1 - C10
-                                    </span>
-                                </div>
-
-                                <div className="divide-y divide-slate-100">
-                                    {details.map((item, index) => {
-                                        const isLunas = item.sisa_tagihan === "0";
-
-                                        return (
-                                            <div key={index} className="p-4 hover:bg-slate-50 transition-colors flex flex-row items-center justify-between gap-3">
-                                                <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                                                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-lg flex-shrink-0 
-                              ${isLunas ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
-                                                        {isLunas ? <FiCheckCircle /> : <FiClock />}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="font-bold text-slate-800 text-sm truncate">
-                                                            Cicilan {item.cicilan.replace('C', '')}
-                                                        </p>
-                                                        <p className="text-xs text-slate-500 mt-0.5 truncate">
-                                                            {formatRupiah(item.total_tagihan)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                                    {isLunas ? (
-                                                        <div className="badge badge-success badge-sm gap-1 text-white border-none px-3">
-                                                            LUNAS
-                                                        </div>
-                                                    ) : (
-                                                        <div className="badge badge-ghost bg-slate-200 text-slate-500 badge-sm border-none px-3">
-                                                            BELUM
-                                                        </div>
-                                                    )}
-                                                    <p className="text-[10px] text-slate-400 text-right">
-                                                        {isLunas
-                                                            ? (item.last_payment ? new Date(item.last_payment).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : 'Lunas')
-                                                            : (parseFloat(item.total_bayar) > 0 ? `Masuk: ${formatRupiah(item.total_bayar)}` : '-')
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
-                                <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
-                                    <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
-                                    Buat Pembayaran Baru
-                                </h3>
-
-                                <form onSubmit={handlePayment} className="flex flex-col gap-2">
-                                    <div className="flex justify-between items-center px-1">
-                                        <span className="text-sm font-medium text-slate-600">Nominal Pembayaran</span>
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <div className="relative flex-1">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold z-10">Rp</span>
-                                            <input
-                                                type="text"
-                                                className="input input-bordered w-full pl-12 text-lg font-semibold text-slate-800 focus:border-blue-500 focus:outline-none bg-slate-50 h-12"
-                                                placeholder="0"
-                                                value={paymentAmount}
-                                                onChange={handleAmountChange}
-                                            />
+                                    <form onSubmit={handlePaymentTagihan} className="flex flex-col gap-2">
+                                        <div className="flex justify-between items-center px-1">
+                                            <span className="text-sm font-medium text-slate-600">Nominal Pembayaran</span>
                                         </div>
-                                        <button
-                                            type="submit"
-                                            className={`btn btn-primary bg-blue-700 hover:bg-blue-800 border-none text-white h-12 px-6 shadow-md shadow-blue-200 flex-shrink-0 ${(!paymentAmount || isLoading || isCreatingVa) ? 'btn-disabled opacity-50' : ''}`}
-                                            disabled={isLoading || isCreatingVa}
-                                        >
-                                            {isCreatingVa ? (
-                                                <span className="loading loading-spinner"></span>
-                                            ) : (
-                                                <>
-                                                    Bayar <FiArrowRight className="hidden sm:inline" />
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 mt-1 pl-1">
-                                        *VA akan dibuat otomatis setelah klik tombol Bayar.
-                                    </p>
-                                </form>
+                                        <div className="flex gap-3">
+                                            <div className="relative flex-1">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold z-10">Rp</span>
+                                                <input
+                                                    type="text"
+                                                    className="input input-bordered w-full pl-12 text-lg font-semibold text-slate-800 focus:border-blue-500 bg-slate-50 h-12"
+                                                    placeholder="0"
+                                                    value={tagihanAmount}
+                                                    onChange={(e) => handleAmountChange(e, setTagihanAmount)}
+                                                />
+                                            </div>
+                                            <button
+                                                type="submit"
+                                                className={`btn btn-primary bg-blue-700 border-none text-white h-12 px-6 flex-shrink-0 ${(!tagihanAmount || isLoading || isCreatingVa) ? 'btn-disabled opacity-50' : ''}`}
+                                                disabled={isLoading || isCreatingVa}
+                                            >
+                                                {isCreatingVa ? <span className="loading loading-spinner"></span> : <>Bayar <FiArrowRight className="hidden sm:inline" /></>}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
+
+                            {hasTunggakan && (
+                                <div className="space-y-4 pt-4 border-t-2 border-dashed border-slate-200">
+                                    <div className="alert alert-warning bg-orange-50 border-orange-200 text-orange-800 flex items-start gap-3 shadow-sm rounded-xl">
+                                        <FiAlertTriangle className="text-xl mt-1 flex-shrink-0" />
+                                        <div className="w-full">
+                                            <h3 className="font-bold text-lg">Tunggakan Sebelumnya</h3>
+                                            <p className="text-sm mb-2">Anda memiliki sisa tunggakan dari semester lalu.</p>
+                                            <div className="flex justify-between items-center bg-white/50 p-2 rounded-lg">
+                                                <span className="text-sm font-medium">Total Sisa Tunggakan:</span>
+                                                <span className="text-lg font-bold">{formatRupiah(tunggakan!.sisa_tunggakan)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white rounded-xl shadow-md border border-orange-200 p-6">
+                                        <h3 className="font-bold text-lg text-orange-800 mb-4 flex items-center gap-2">
+                                            <div className="w-1 h-6 bg-orange-500 rounded-full"></div>
+                                            Bayar Tunggakan
+                                        </h3>
+                                        <form onSubmit={handlePaymentTunggakan} className="flex flex-col gap-2">
+                                            <div className="flex justify-between items-center px-1">
+                                                <span className="text-sm font-medium text-slate-600">Nominal Pelunasan Tunggakan</span>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="relative flex-1">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold z-10">Rp</span>
+                                                    <input
+                                                        type="text"
+                                                        className="input input-bordered w-full pl-12 text-lg font-semibold text-slate-800 focus:border-orange-500 bg-orange-50/30 h-12"
+                                                        placeholder="0"
+                                                        value={tunggakanAmount}
+                                                        onChange={(e) => handleAmountChange(e, setTunggakanAmount)}
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="submit"
+                                                    className={`btn btn-warning bg-orange-500 hover:bg-orange-600 border-none text-white h-12 px-6 flex-shrink-0 ${(!tunggakanAmount || isLoading || isCreatingVa) ? 'btn-disabled opacity-50' : ''}`}
+                                                    disabled={isLoading || isCreatingVa}
+                                                >
+                                                    {isCreatingVa ? <span className="loading loading-spinner"></span> : <>Bayar <FiArrowRight className="hidden sm:inline" /></>}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 ) : (
@@ -284,20 +387,15 @@ const BayarUkt = () => {
                 )}
 
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-fade-in">
-                    <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                        <div>
-                            <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                <FiFileText className="text-blue-600" /> Riwayat Pembayaran
-                            </h3>
-                            <p className="text-slate-500 text-sm mt-1">
-                                Daftar kwitansi pembayaran yang telah valid
-                            </p>
-                        </div>
+                    <div className="p-6 border-b border-slate-200">
+                        <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                            <FiFileText className="text-blue-600" /> Riwayat Pembayaran
+                        </h3>
                     </div>
 
                     <div className="overflow-x-auto">
                         <table className="table w-full">
-                            <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider">
+                            <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
                                 <tr>
                                     <th className="py-4 pl-6 w-16">No</th>
                                     <th className="py-4 min-w-[120px]">Tanggal</th>
@@ -310,44 +408,21 @@ const BayarUkt = () => {
                             </thead>
                             <tbody className="text-sm divide-y divide-slate-100">
                                 {isLoadingKwitansi ? (
-                                    <tr>
-                                        <td colSpan={7} className="text-center py-8 text-slate-400">
-                                            <span className="loading loading-spinner loading-sm"></span> Memuat riwayat...
-                                        </td>
-                                    </tr>
+                                    <tr><td colSpan={7} className="text-center py-8 text-slate-400"><span className="loading loading-spinner"></span> Memuat...</td></tr>
                                 ) : kwitansiList && kwitansiList.length > 0 ? (
                                     kwitansiList.map((item, index) => (
-                                        <tr key={item.id_trx} className="hover:bg-blue-50/30 transition-colors group">
+                                        <tr key={item.id_trx} className="hover:bg-blue-50/30 transition-colors">
                                             <td className="py-3 pl-6 text-slate-400 font-mono">{index + 1}</td>
-                                            <td className="py-3 font-medium text-slate-700">
-                                                {new Date(item.tanggal).toLocaleDateString('id-ID', {
-                                                    day: '2-digit', month: 'short', year: 'numeric'
-                                                })}
-                                            </td>
-                                            <td className="py-3 font-mono text-xs text-slate-600">
-                                                {item.kwitansi}
-                                                <div className="text-[10px] text-slate-400 mt-0.5 truncate max-w-[200px]" title={item.nama_ukt}>
-                                                    {item.nama_ukt}
-                                                </div>
-                                            </td>
-                                            <td className="py-3 text-center">
-                                                <span className="badge badge-ghost bg-slate-100 text-slate-600 border-none">
-                                                    {item.periode}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 font-semibold text-slate-800">
-                                                {formatRupiah(item.jlminput)}
-                                            </td>
-                                            <td className="py-3 text-center">
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
-                                                    <FiCheckCircle className="text-[10px]" /> {item.status}
-                                                </span>
-                                            </td>
+                                            <td className="py-3 font-medium text-slate-700">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                            <td className="py-3 font-mono text-xs text-slate-600">{item.kwitansi}</td>
+                                            <td className="py-3 text-center"><span className="badge badge-ghost bg-slate-100 text-slate-600">{item.periode}</span></td>
+                                            <td className="py-3 font-semibold text-slate-800">{formatRupiah(item.jlminput)}</td>
+                                            <td className="py-3 text-center"><span className="badge badge-success bg-green-100 text-green-700 text-xs border-none">{item.status}</span></td>
                                             <td className="py-3 pr-6 text-center">
                                                 <button
-                                                    className="btn btn-xs btn-ghost text-blue-600 hover:bg-blue-50 tooltip tooltip-left"
-                                                    data-tip="Unduh Bukti"
-                                                    onClick={() => toast.success("Fitur cetak kwitansi akan segera tersedia")}
+                                                    className="btn btn-xs btn-ghost text-blue-600 tooltip tooltip-left"
+                                                    data-tip="Download Kwitansi"
+                                                    onClick={() => window.open(`https://slik.ubpkarawang.ac.id/api/tagihan/download_kwitansi/${item.kwitansi}?preview=1`, '_blank')}
                                                 >
                                                     <FiDownload />
                                                 </button>
@@ -355,29 +430,16 @@ const BayarUkt = () => {
                                         </tr>
                                     ))
                                 ) : (
-                                    <tr>
-                                        <td colSpan={7} className="text-center py-8 text-slate-400 italic">
-                                            Belum ada riwayat pembayaran.
-                                        </td>
-                                    </tr>
+                                    <tr><td colSpan={7} className="text-center py-8 text-slate-400 italic">Belum ada riwayat.</td></tr>
                                 )}
                             </tbody>
                         </table>
                     </div>
-                    {kwitansiList && kwitansiList.length > 0 && (
-                        <div className="bg-slate-50 border-t border-slate-200 p-3 text-xs text-center text-slate-400">
-                            Menampilkan {kwitansiList.length} transaksi terakhir
-                        </div>
-                    )}
                 </div>
 
             </main>
-
             <Footer />
-            <style>{`
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
+            <style>{`.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
         </div>
     );
 };
