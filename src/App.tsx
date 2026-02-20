@@ -1,59 +1,44 @@
-import { Navigate, Route, Routes } from "react-router-dom"
-import Login from "@/pages/Auth/Login"
-import Home from "@/pages/Home"
-import { useAuthStore } from "@/store/useAuthStore"
+import { Routes, Route } from "react-router-dom"
 import { useEffect } from "react"
 import toast from "react-hot-toast"
-import NilaiMahasiswa from "@/pages/NilaiMahasiswa"
-import Profile from "@/pages/Profile"
-import NotFoundPage from "@/pages/NotFoundPage"
-import MahasiswaKurikulum from "./pages/MahasiswaKurikulum"
-import AktivitasPerkuliahan from "./pages/AktivitasPerkuliahan"
-import BayarUkt from "./pages/BayarUkt"
+import { useAuthStore } from "@/store/useAuthStore"
+
+import RouteGuard from "@/components/RouteGuard"
+import routes from "./route"
 
 const App = () => {
-  const { authUser, checkAuth } = useAuthStore()
+  const { checkAuth } = useAuthStore()
 
   useEffect(() => {
     const runCheck = async () => {
       try {
-        if (checkAuth) await checkAuth(true);
+        await checkAuth(true)
       } catch (error: unknown) {
-        if (error instanceof Error) toast.error("Gagal cek auth" + error.message);
+        if (error instanceof Error) {
+          toast.error("Gagal cek auth: " + error.message)
+        }
       }
-    };
+    }
 
-    runCheck();
-  }, [checkAuth]);
+    runCheck()
+  }, [checkAuth])
+
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
-      <Route
-        path="/nilai-mhs"
-        element={authUser ? <NilaiMahasiswa /> : <Navigate to="/login" />}
-      />
-      <Route
-        path="/profile"
-        element={authUser ? <Profile /> : <Navigate to="/login" />}
-      />
-      <Route
-        path="/mahasiswa/kurikulum"
-        element={authUser ? <MahasiswaKurikulum /> : <Navigate to="/login" />}
-      />
-      <Route
-        path="/aktivitas-perkuliahan"
-        element={authUser ? <AktivitasPerkuliahan /> : <Navigate to="/login" />}
-      />
-      <Route
-        path="/bayar-ukt-mahasiswa"
-        element={authUser ? <BayarUkt /> : <Navigate to="/login" />}
-      />
-      <Route
-        path="/login"
-        element={!authUser ? <Login /> : <Navigate to="/" />}
-      />
-      {/* Not Found */}
-      <Route path="*" element={<NotFoundPage />} />
+      {routes.map((route, index) => (
+        <Route
+          key={index}
+          path={route.path}
+          element={
+            <RouteGuard
+              protected={route.protected}
+              guestOnly={route.guestOnly}
+            >
+              {route.element}
+            </RouteGuard>
+          }
+        />
+      ))}
     </Routes>
   )
 }

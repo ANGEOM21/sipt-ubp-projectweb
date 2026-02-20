@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { axiosInstance } from "@/lib/axios";
 import toast from "react-hot-toast";
-import type { ResponseAuth, ResponseProfile, UserLogin } from "@/types";
+import type { ResponseProfile, UserLogin } from "@/types";
 import axios from "axios";
 import {
 	extractAxiosMessage,
@@ -20,13 +20,11 @@ interface AuthStore {
 	isLoggingIn: boolean;
 	isUpdatingProfile: boolean;
 	isCheckingAuth: boolean;
-
 	checkAuth: (suppressToast?: boolean) => Promise<void>;
 	login: (data: LoginData) => Promise<void>;
 	logout: () => Promise<void>;
 }
 
-// ===== Helpers =====
 const TOKEN_KEY = "token";
 const MHS_KEY = "mhs";
 
@@ -47,7 +45,6 @@ function setStoredMhs(val: UserLogin | null) {
 	localStorage.setItem(MHS_KEY, JSON.stringify(val));
 }
 
-// ===== Store =====
 export const useAuthStore = create<AuthStore>((set) => ({
 	authUser: getStoredMhs(),
 	isLoggingIn: false,
@@ -61,8 +58,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
 		setAuthHeaderFromToken(token);
 
 		if (stored) set({ authUser: stored });
-		if (!stored) {
-			set({ isCheckingAuth: false });
+		
+		if (!stored || !token) {
+			set({ authUser: null, isCheckingAuth: false });
 			return;
 		}
 
@@ -74,28 +72,24 @@ export const useAuthStore = create<AuthStore>((set) => ({
 			const bodyCode = res?.data?.status_code;
 			const messages = res?.data?.messages;
 
-			// Body bilang unauthorized (walau HTTP 200)
 			if (isApiUnauthorized(bodyCode)) {
 				localStorage.removeItem(TOKEN_KEY);
 				setStoredMhs(null);
 				set({ authUser: null, isCheckingAuth: false });
-				return; // stop
+				return;
 			}
 
-			// Kalau bukan OK menurut body → jangan sentuh session
 			if (!isApiOk(bodyCode, messages)) {
 				set({ isCheckingAuth: false });
 				return;
 			}
 
-			const profile = res?.data?.data; // bisa undefined/null
+			const profile = res?.data?.data;
 			if (!profile) {
-				// success tanpa data: biarin state dari localStorage, selesai
 				set({ isCheckingAuth: false });
 				return;
 			}
 
-			// Update HANYA nama + email, defensif
 			set((state) => {
 				const prev = state.authUser ?? stored;
 				const merged: UserLogin = {
@@ -108,89 +102,60 @@ export const useAuthStore = create<AuthStore>((set) => ({
 			});
 
 			if (!suppressToast) {
-				const safeName = profile?.nama ?? stored?.nama ?? "there";
+				const safeName = profile?.nama ?? stored?.nama ?? "User";
 				toast.success(`Welcome back, ${safeName}`);
 			}
 		} catch (err: unknown) {
-			if (
-				axios.isAxiosError(err) &&
-				(err.response?.status === 401 || err.response?.status === 403)
-			) {
+			if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
 				localStorage.removeItem(TOKEN_KEY);
 				setStoredMhs(null);
-				set({ authUser: null, isCheckingAuth: false });
-				return;
+				set({ authUser: null });
 			}
-			console.error("checkAuth error:", extractAxiosMessage(err));
+			console.error(extractAxiosMessage(err));
 		} finally {
 			set({ isCheckingAuth: false });
 		}
 	},
 
-	login: async (data: LoginData) => {
-		set({ isLoggingIn: true });
-		try {
-			const formData = new FormData();
-			formData.append("email", data.email);
-			formData.append("password", data.password);
+	login: async (data: { email: string; password: string }) => {
+    set({ isLoggingIn: true });
+    try {
+         const res = await axiosInstance.post('/auth/login-bypass', {
+        email: data.email,
+        password: data.password
+    	});
 
-			const res = await axiosInstance.post<ResponseAuth>("/login", formData, {
-				headers: { "Content-Type": "multipart/form-data" }
-			});
+        const { token, data: userData } = res.data;
 
-			const bodyCode = res?.data?.status_code;
-			const messages = res?.data?.messages;
+        localStorage.setItem(TOKEN_KEY, token);
+        setStoredMhs(userData);
+        setAuthHeaderFromToken(token);
 
-			// Kalau body bilang unauthorized → lempar error biar masuk catch
-			if (isApiUnauthorized(bodyCode)) {
-				throw new Error(res?.data?.messages || "Unauthorized");
-			}
-
-			if (
-				!isApiOk(bodyCode, messages) ||
-				!res?.data?.data ||
-				!res?.data?.token
-			) {
-				throw new Error(res?.data?.messages || "Login gagal");
-			}
-
-			const token = res.data.token;
-			const mhs = res.data.data; // UserLogin
-
-			localStorage.setItem(TOKEN_KEY, token);
-			setStoredMhs(mhs);
-			setAuthHeaderFromToken(token);
-
-			set({ authUser: mhs });
-			toast.success("Logged in successfully");
-		} catch (err: unknown) {
-			// Jangan simpan apa pun kalau gagal
-			localStorage.removeItem(TOKEN_KEY);
-			setStoredMhs(null);
-			set({ authUser: null });
-			toast.error(extractAxiosMessage(err) || "Login failed");
-		} finally {
-			set({ isLoggingIn: false });
-		}
-	},
+        set({ authUser: userData });
+        toast.success("Logged in successfully");
+    } catch (err: any) {
+        const msg = err.response?.data?.messages || "Login gagal";
+        toast.error(msg);
+    } finally {
+        set({ isLoggingIn: false });
+    }
+},
 
 	logout: async () => {
-		const fakeLogoutPromise = new Promise((resolve) =>
-			setTimeout(resolve, 1000)
-		);
-
-		toast.promise(fakeLogoutPromise, {
+		const logoutPromise = new Promise((resolve) => setTimeout(resolve, 800));
+		toast.promise(logoutPromise, {
 			loading: "Logging out...",
 			success: "Logged out successfully",
 			error: "Logout failed"
 		});
 
 		try {
-			await fakeLogoutPromise;
+			await logoutPromise;
 		} finally {
 			localStorage.removeItem(TOKEN_KEY);
 			setStoredMhs(null);
 			set({ authUser: null });
+			window.location.href = "/login";
 		}
 	}
 }));

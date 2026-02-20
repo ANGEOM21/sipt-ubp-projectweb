@@ -5,6 +5,9 @@ import {
     FiBook, FiLayers,
     FiLogIn,
     FiDollarSign,
+    FiAlertOctagon,
+    FiArchive,
+    FiBriefcase,
 } from "react-icons/fi";
 
 const Topbar = () => {
@@ -19,6 +22,11 @@ const Topbar = () => {
         { name: "Kurikulum", path: "/mahasiswa/kurikulum", icon: FiLayers },
         { name: "Aktivitas", path: "/aktivitas-perkuliahan", icon: FiBook },
         { name: "Bayar UKT", path: "/bayar-ukt-mahasiswa", icon: FiDollarSign },
+    ];
+
+    const krsLinks = [
+        { name: "Tambah KRS", path: "/krs-mahasiswa", icon: FiAlertOctagon },
+        { name: "Perwalian", path: "/perwalian-mahasiswa", icon: FiArchive },
     ];
 
     return (
@@ -54,6 +62,26 @@ const Topbar = () => {
                             </summary>
                             <ul className="p-2 bg-white shadow-xl border border-slate-100 rounded-xl min-w-[200px] mt-2">
                                 {appLinks.map((link) => (
+                                    <li key={link.path}>
+                                        <Link
+                                            to={link.path}
+                                            className={`mb-1 ${isActive(link.path) ? activeClass : "hover:bg-slate-50"}`}
+                                        >
+                                            <link.icon /> {link.name}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </details>
+                    </li>
+                    <li>
+                        <details>
+                            <summary className={`rounded-lg hover:bg-slate-50 hover:text-blue-600 ${(isActive('/krs-mahasiswa') || isActive('/perwalian-mahasiswa')) ? 'text-blue-600' : ''}`}>
+                                <FiBriefcase className="text-lg" />
+                                <span>KRS</span>
+                            </summary>
+                            <ul className="p-2 bg-white shadow-xl border border-slate-100 rounded-xl min-w-[200px] mt-2">
+                                {krsLinks.map((link) => (
                                     <li key={link.path}>
                                         <Link
                                             to={link.path}
@@ -103,15 +131,38 @@ const Topbar = () => {
                                 </li>
 
                                 <li className="block lg:hidden">
-                                    <details open={isActive('/nilai-mhs') || isActive('/mahasiswa-kurikulum')}>
+                                    <details>
                                         <summary className="py-3 px-4 rounded-lg mb-1 text-slate-600 group">
                                             <div className="flex items-center gap-2">
                                                 <FiGrid className="text-lg group-open:text-blue-600" />
-                                                <span className="group-open:font-semibold group-open:text-blue-600">Apps</span>
+                                                <span className="group-open:font-semibold group-open:text-blue-600">Akademik</span>
                                             </div>
                                         </summary>
                                         <ul className="before:bg-slate-200">
                                             {appLinks.map((link) => (
+                                                <li key={link.path}>
+                                                    <Link
+                                                        to={link.path}
+                                                        className={`py-2 pl-4 rounded-lg my-0.5 ${isActive(link.path) ? "bg-blue-50 text-blue-600 font-medium" : "text-slate-500 hover:text-slate-700"}`}
+                                                    >
+                                                        <link.icon className="text-sm" />
+                                                        {link.name}
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </details>
+                                </li>
+                                <li className="block lg:hidden">
+                                    <details>
+                                        <summary className="py-3 px-4 rounded-lg mb-1 text-slate-600 group">
+                                            <div className="flex items-center gap-2">
+                                                <FiArchive className="text-lg group-open:text-blue-600" />
+                                                <span className="group-open:font-semibold group-open:text-blue-600">KRS</span>
+                                            </div>
+                                        </summary>
+                                        <ul className="before:bg-slate-200">
+                                            {krsLinks.map((link) => (
                                                 <li key={link.path}>
                                                     <Link
                                                         to={link.path}

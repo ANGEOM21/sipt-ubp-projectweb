@@ -15,6 +15,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
     proxy: {
       "/upload": {
         target: "https://api-gateway.ubpkarawang.ac.id",

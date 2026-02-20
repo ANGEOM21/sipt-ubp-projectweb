@@ -24,9 +24,6 @@ const Login = () => {
 			navigate("/");
 		} catch (err) {
 			setError("Email atau password salah. Silakan coba lagi.");
-			console.error("Login error:", err);
-		} finally {
-			setLoading(false);
 		}
 	};
 
