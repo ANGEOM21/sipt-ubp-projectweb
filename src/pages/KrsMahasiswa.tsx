@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import Topbar from "@/components/Topbar";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useKrsStore, type MataKuliah, type KrsSelection } from "@/store/useKrsStore";
+import { useKrsStore, type KrsSelection, type MataKuliah } from "@/store/useKrsStore";
 
 const MASTER_NIM = ["22416255201247", "22416255201162"];
 
