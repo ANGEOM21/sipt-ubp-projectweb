@@ -117,28 +117,56 @@ export const useAuthStore = create<AuthStore>((set) => ({
 		}
 	},
 
-	login: async (data: { email: string; password: string }) => {
-    set({ isLoggingIn: true });
-    try {
-         const res = await axiosInstance.post('/auth/login-bypass', {
-        email: data.email,
-        password: data.password
-    	});
+// 	login: async (data: { email: string; password: string }) => {
+//     set({ isLoggingIn: true });
+//     try {
+//          const res = await axiosInstance.post('/auth/login-bypass', {
+//         email: data.email,
+//         password: data.password
+//     	});
 
-        const { token, data: userData } = res.data;
+//         const { token, data: userData } = res.data;
 
-        localStorage.setItem(TOKEN_KEY, token);
-        setStoredMhs(userData);
-        setAuthHeaderFromToken(token);
+//         localStorage.setItem(TOKEN_KEY, token);
+//         setStoredMhs(userData);
+//         setAuthHeaderFromToken(token);
 
-        set({ authUser: userData });
-        toast.success("Logged in successfully");
-    } catch (err: any) {
-        const msg = err.response?.data?.messages || "Login gagal";
-        toast.error(msg);
-    } finally {
-        set({ isLoggingIn: false });
-    }
+//         set({ authUser: userData });
+//         toast.success("Logged in successfully");
+//     } catch (err: any) {
+//         const msg = err.response?.data?.messages || "Login gagal";
+//         toast.error(msg);
+//     } finally {
+//         set({ isLoggingIn: false });
+//     }
+// },
+
+login: async () => {
+  set({ isLoggingIn: true });
+
+  try {
+    const token =
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImlmMjIuemlkaGFuc3lhcmlmdWRpbkBtaHMudWJwa2FyYXdhbmcuYWMuaWQiLCJyb2xlIjoibWFoYXNpc3dhIiwiaWF0IjoxNzcxNjg0MDI3LCJleHAiOjE3NzE2OTEyMjd9.hh73o0K3l2t5k4JaLWucKW-mqnZGUi0NG3QDveB5N7E";
+
+    const manualUser = {
+      id: "22416255201162",
+      nama: "ZIDHAN RAFFLY MUHAMMAD SYARIFUDIN",
+      email: "if22.zidhansyarifudin@mhs.ubpkarawang.ac.id",
+    };
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("mhs", JSON.stringify(manualUser));
+
+    setAuthHeaderFromToken(token);
+
+    set({ authUser: manualUser });
+
+    toast.success("Login manual berhasil 🚀");
+  } catch (err) {
+    toast.error("Login manual gagal");
+  } finally {
+    set({ isLoggingIn: false });
+  }
 },
 
 	logout: async () => {

@@ -66,7 +66,7 @@ export const useKrsStore = create<KrsStore>((set, get) => ({
         if (item.tipe === "ambil") {
           formData.append("matakuliah", item.id_matkul);
         } else if (item.tipe === "ulang") {
-          formData.append("ulang_matakuliah[]", item.id_matkul);
+          formData.append("ulang_matakuliah", item.id_matkul);
         }
       });
 

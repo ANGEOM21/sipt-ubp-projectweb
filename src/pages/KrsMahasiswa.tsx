@@ -78,13 +78,13 @@ const KrsMahasiswa = () => {
   const renderStatus = (status: string | null) => {
     switch (status) {
       case "0":
-        return <div className="badge badge-warning gap-1 text-xs">Menunggu</div>;
+        return <div className="badge badge-warning gap-1 text-[10px] py-2">Menunggu</div>;
       case "1":
-        return <div className="badge badge-error text-white gap-1 text-xs">Ditolak</div>;
+        return <div className="badge badge-error text-white gap-1 text-[10px] py-2">Ditolak</div>;
       case "2":
-        return <div className="badge badge-success text-white gap-1 text-xs">Disetujui</div>;
+        return <div className="badge badge-success text-white gap-1 text-[10px] py-2">Disetujui</div>;
       default:
-        return null; 
+        return <span className="text-slate-300 text-xs">-</span>; 
     }
   };
 
@@ -97,7 +97,7 @@ const KrsMahasiswa = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in">
           <div>
             <h1 className="text-3xl font-bold text-slate-800">Tambah KRS</h1>
-            <p className="text-slate-500 text-sm mt-1">Pilih mata kuliah yang akan diambil semester ini</p>
+            <p className="text-slate-500 text-sm mt-1">Kelola rencana studi mahasiswa semester ini</p>
           </div>
           
           {isMaster && (
@@ -136,16 +136,16 @@ const KrsMahasiswa = () => {
 
                 <div className="overflow-x-auto">
                   <table className="table w-full">
-                    <thead className="text-slate-500 bg-slate-50 text-xs uppercase font-semibold">
+                    <thead className="text-slate-500 bg-slate-50 text-[10px] uppercase font-bold">
                       <tr>
                         <th className="w-1/2 min-w-[200px]">Mata Kuliah</th>
                         <th className="text-center w-20">SKS</th>
-                        <th className="text-center w-40">Status</th>
+                        <th className="text-center w-32">Status</th>
+                        <th className="text-center w-32">Pengajuan</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-sm">
                       {items.map((mk) => {
-                        const isAvailable = mk.status_acc === null;
                         const isSelectedAmbil = selections[mk.id_matkul] === "ambil";
                         const isSelectedUlang = selections[mk.id_matkul] === "ulang";
 
@@ -153,7 +153,7 @@ const KrsMahasiswa = () => {
                           <tr key={mk.id_matkul} className="hover:bg-slate-50 transition-colors">
                             <td className="py-4">
                               <div className="font-bold text-slate-700">{mk.nama_mata_kuliah}</div>
-                              <div className="text-xs text-slate-400 mt-1">{mk.kode_matkul}</div>
+                              <div className="text-[10px] font-mono text-slate-400 mt-1 uppercase tracking-wider">{mk.kode_matkul}</div>
                             </td>
 
                             <td className="text-center font-medium text-slate-600">
@@ -161,31 +161,42 @@ const KrsMahasiswa = () => {
                             </td>
 
                             <td className="text-center">
-                              {isAvailable ? (
-                                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                                  <label className="cursor-pointer label p-0 gap-2">
+                              {renderStatus(mk.status_acc)}
+                            </td>
+
+                            <td className="text-center">
+                              <div className="flex justify-center items-center">
+                                {/* JIKA STATUS NULL -> MUNCUL AMBIL */}
+                                {mk.status_acc === null && (
+                                  <label className="cursor-pointer label gap-2 bg-primary/5 px-3 py-1 rounded-full border border-primary/10 hover:bg-primary/10 transition-all">
                                     <input 
                                       type="checkbox" 
-                                      className="checkbox checkbox-primary checkbox-sm"
+                                      className="checkbox checkbox-primary checkbox-xs"
                                       checked={isSelectedAmbil}
                                       onChange={() => toggleSelection(mk.id_matkul, "ambil")}
                                     />
-                                    <span className={`label-text text-xs ${isSelectedAmbil ? 'font-bold text-primary' : ''}`}>Ambil</span>
+                                    <span className={`text-[10px] font-bold uppercase ${isSelectedAmbil ? 'text-primary' : 'text-slate-500'}`}>Ambil</span>
                                   </label>
+                                )}
 
-                                  <label className="cursor-pointer label p-0 gap-2">
+                                {/* JIKA STATUS 2 (DISETUJUI) -> MUNCUL ULANG */}
+                                {mk.status_acc === "2" && (
+                                  <label className="cursor-pointer label gap-2 bg-secondary/5 px-3 py-1 rounded-full border border-secondary/10 hover:bg-secondary/10 transition-all">
                                     <input 
                                       type="checkbox" 
-                                      className="checkbox checkbox-secondary checkbox-sm"
+                                      className="checkbox checkbox-secondary checkbox-xs"
                                       checked={isSelectedUlang}
                                       onChange={() => toggleSelection(mk.id_matkul, "ulang")}
                                     />
-                                    <span className={`label-text text-xs ${isSelectedUlang ? 'font-bold text-secondary' : ''}`}>Ulang</span>
+                                    <span className={`text-[10px] font-bold uppercase ${isSelectedUlang ? 'text-secondary' : 'text-slate-500'}`}>Ulang</span>
                                   </label>
-                                </div>
-                              ) : (
-                                renderStatus(mk.status_acc)
-                              )}
+                                )}
+
+                                {/* JIKA SEDANG MENUNGGU ATAU DITOLAK -> KOSONGKAN ATAU BERI INFO */}
+                                {(mk.status_acc === "0" || mk.status_acc === "1") && (
+                                  <span className="text-[10px] text-slate-400 italic">Locked</span>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -201,20 +212,20 @@ const KrsMahasiswa = () => {
       </main>
 
       {Object.keys(selections).length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 animate-slide-up">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-50 animate-slide-up">
           <div className="container mx-auto flex justify-between items-center px-4 sm:px-6">
             <div>
-              <p className="text-sm font-semibold text-slate-600">
+              <p className="text-sm font-bold text-slate-700">
                 {Object.keys(selections).length} Mata Kuliah Dipilih
               </p>
-              <p className="text-xs text-slate-400">Pastikan pilihan sudah benar sebelum mengajukan.</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-tight font-medium">Klik Ajukan KRS untuk mengirim ke Dosen Wali</p>
             </div>
             <button 
               onClick={handleSubmit} 
               disabled={isSubmitting}
-              className="btn btn-primary text-white px-8"
+              className="btn btn-primary text-white px-10 btn-sm h-10 shadow-lg shadow-primary/20 border-none"
             >
-              {isSubmitting ? <span className="loading loading-spinner"></span> : "Ajukan KRS"}
+              {isSubmitting ? <span className="loading loading-spinner loading-xs"></span> : "AJUKAN KRS"}
             </button>
           </div>
         </div>

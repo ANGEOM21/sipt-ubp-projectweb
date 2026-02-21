@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "@/lib/axios";
 import type { NilaiMhs, ResponsePeriodeNilaiMhs } from "@/types";
 import toast from "react-hot-toast";
+import axios from "axios";
 
 /* helpers kecil */
 function getFilenameFromDisposition(dispo?: string, fallback = "file.pdf") {
@@ -76,67 +77,124 @@ export const useNilaiMhsStore = create<NilaiMhsStore>((set) => ({
 	},
 
 	getNilai: async (data) => {
-		set({ isLoadingNilai: true });
-		try {
-			const payload = {
-				nim: data.nim,
-				periode: data.periode,
-				jenis: data.jenis
-			};
-			const res = await axiosInstance.post(
-				"/mahasiswa/nilai/show-report-nilai",
-				payload,
-				{ headers: { "Content-Type": "application/json" } }
-			);
-			set({ NilaiMhs: res.data.nilai, isLoadingNilai: false });
-		} catch (error) {
-			console.error("Error during getNilai:", error);
-			set({ isLoadingNilai: false });
-		}
-	},
+	set({ isLoadingNilai: true });
 
-	getNilaiPrint: async (data, typePrint, openInNewTab = false) => {
-		const payload = { nim: data.nim, periode: data.periode, jenis: data.jenis };
-		const url =
-			typePrint === "transkrip"
-				? "/mahasiswa/nilai/report-transkrip"
-				: "/mahasiswa/nilai/report-khs";
+	try {
+		const payload = {
+			nim: data.nim,
+			periode: data.periode,
+			jenis: data.jenis
+		};
 
-		try {
-			const res = await axiosInstance.post<Blob>(url, payload, {
-				responseType: "blob",
+		// console.log("=== REQUEST NILAI ===");
+		// console.log("Payload:", payload);
+
+		const res = await axios.post(
+			"https://api-gateway.ubpkarawang.ac.id/mahasiswa/nilai/show-report-nilai",
+			payload,
+			{
 				headers: {
 					"Content-Type": "application/json",
-					Accept: "application/pdf"
-				}
-			});
-
-			if (res.data.type === "application/json") {
-				const text = await res.data.text();
-				try {
-					const json = JSON.parse(text);
-					console.error("Gagal cetak:", json?.messages || "Unknown error");
-					return;
-				} catch {
-					console.error("Respon tidak valid saat cetak.");
-					return;
-				}
+					Authorization: localStorage.getItem("token") 
+				},
+				timeout: 15000
 			}
+		);
 
-			const dispo =
-				(res.headers as Record<string, string>)["content-disposition"] ??
-				(res.headers as Record<string, string>)["Content-Disposition"];
-			const fallback = `${typePrint}-${data.nim}-${data.periode}.pdf`;
-			const filename = getFilenameFromDisposition(
-				typeof dispo === "string" ? dispo : undefined,
-				fallback
-			);
+		// console.log("=== RESPONSE NILAI ===");
+		// console.log("Full Response:", res);
+		// console.log("Response Data:", res.data);
 
-			saveBlob(res.data, filename, openInNewTab);
-		} catch (error) {
-			console.error("Error during getNilaiPrint:", error);
+		set({
+			NilaiMhs: res.data?.nilai || [],
+			isLoadingNilai: false
+		});
+	} catch (error: any) {
+		// console.log("=== ERROR NILAI ===");
+
+		if (error.response) {
+			console.log("Status:", error.response.status);
+			console.log("Data:", error.response.data);
+		} else if (error.request) {
+			console.log("No response received:", error.request);
+		} else {
+			console.log("Error message:", error.message);
 		}
-	},
+
+		set({ isLoadingNilai: false });
+	}
+},
+
+	getNilaiPrint: async (data, typePrint, openInNewTab = false) => {
+	const payload = {
+		nim: data.nim,
+		periode: data.periode,
+		jenis: data.jenis
+	};
+
+	const url =
+		typePrint === "transkrip"
+			? "https://api-gateway.ubpkarawang.ac.id/mahasiswa/nilai/report-transkrip"
+			: "https://api-gateway.ubpkarawang.ac.id/mahasiswa/nilai/report-khs";
+
+	try {
+		// console.log("=== REQUEST PRINT ===");
+		// console.log("URL:", url);
+		// console.log("Payload:", payload);
+
+		const res = await axios.post(url, payload, {
+			responseType: "blob",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/pdf",
+				Authorization: localStorage.getItem("token") || ""
+			},
+			timeout: 20000
+		});
+
+		// console.log("=== RESPONSE PRINT ===");
+		// console.log("Headers:", res.headers);
+		// console.log("Blob Type:", res.data.type);
+
+		// Kalau server ternyata kirim JSON error
+		if (res.data.type === "application/json") {
+			const text = await res.data.text();
+			try {
+				const json = JSON.parse(text);
+				console.error("Gagal cetak:", json?.messages || "Unknown error");
+				return;
+			} catch {
+				console.error("Respon tidak valid saat cetak.");
+				return;
+			}
+		}
+
+		const dispo =
+			(res.headers as Record<string, string>)["content-disposition"] ??
+			(res.headers as Record<string, string>)["Content-Disposition"];
+
+		const fallback = `${typePrint}-${data.nim}-${data.periode}.pdf`;
+
+		const filename = getFilenameFromDisposition(
+			typeof dispo === "string" ? dispo : undefined,
+			fallback
+		);
+
+		saveBlob(res.data, filename, openInNewTab);
+
+	} catch (error: any) {
+		console.log("=== ERROR PRINT ===");
+
+		if (error.response) {
+			console.log("Status:", error.response.status);
+			console.log("Data:", error.response.data);
+		} else if (error.request) {
+			console.log("No response received:", error.request);
+		} else {
+			console.log("Error message:", error.message);
+		}
+	}
+},
 
 	resetNilai: () => set({ NilaiMhs: null, periodeNilaiMhs: null})
 }));
