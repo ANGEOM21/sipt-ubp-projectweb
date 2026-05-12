@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { axiosInstance } from "@/lib/axios";
+import { extractAxiosMessage } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 export interface TagihanOverview {
@@ -125,7 +126,7 @@ export const useTagihanStore = create<TagihanStore>((set, get) => ({
         set({ tagihanData: null });
       }
     } catch (e) { 
-      console.error(e); 
+      console.error("Error getTagihan:", extractAxiosMessage(e)); 
       set({ tagihanData: null }); 
     } finally { 
       set({ isLoading: false }); 
@@ -144,7 +145,7 @@ export const useTagihanStore = create<TagihanStore>((set, get) => ({
               set({ tunggakanData: null });
           }
       } catch (e) { 
-          console.error(e); 
+          console.error("Error getTunggakan:", extractAxiosMessage(e)); 
           set({ tunggakanData: null }); 
       }
   },
@@ -161,7 +162,7 @@ export const useTagihanStore = create<TagihanStore>((set, get) => ({
               set({ activeVa: null });
           }
       } catch (e) { 
-          console.error(e); 
+          console.error("Error cekVa:", extractAxiosMessage(e)); 
           set({ activeVa: null }); 
       }
   },
@@ -198,7 +199,7 @@ export const useTagihanStore = create<TagihanStore>((set, get) => ({
           toast.error(res.data?.messages || "Gagal membuat VA.");
       }
     } catch (error) {
-      console.error("Error createVaMdr:", error);
+      console.error("Error createVaMdr:", extractAxiosMessage(error));
       toast.error("Gagal membuat permintaan pembayaran.");
     } finally {
       set({ isCreatingVa: false });

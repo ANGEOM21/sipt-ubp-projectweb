@@ -130,15 +130,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
 			const { token, data: userData } = res.data;
 
+			if (!token) throw new Error("Token tidak ditemukan dalam response server");
+
 			localStorage.setItem(TOKEN_KEY, token);
 			setStoredMhs(userData);
 			setAuthHeaderFromToken(token);
 
 			set({ authUser: userData });
 			toast.success("Logged in successfully");
-		} catch (err: any) {
-			const msg = err.response?.data?.messages || "Login gagal";
+		} catch (err: unknown) {
+			const msg = extractAxiosMessage(err);
 			toast.error(msg);
+			console.error("Login Error:", msg);
 		} finally {
 			set({ isLoggingIn: false });
 		}
@@ -157,6 +160,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 		} finally {
 			localStorage.removeItem(TOKEN_KEY);
 			setStoredMhs(null);
+			setAuthHeaderFromToken(null); // Clear axios header
 			set({ authUser: null });
 			window.location.href = "/login";
 		}

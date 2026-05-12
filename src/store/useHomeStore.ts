@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { axiosInstance } from "@/lib/axios";
+import { extractAxiosMessage } from "@/lib/utils";
 import type { ResponseinfoAkademik } from "@/types";
 
 interface HomeStore {
-	infoAkademik: ResponseinfoAkademik | null,
-	getInfoAkademik: () => void
+	infoAkademik: ResponseinfoAkademik | null;
+	getInfoAkademik: () => Promise<void>;
 }
 
 export const useHomeStore = create<HomeStore>((set) => ({
@@ -14,8 +15,7 @@ export const useHomeStore = create<HomeStore>((set) => ({
 			const res = await axiosInstance.get<ResponseinfoAkademik>("/apps/dashboard/info-akademik");
 			set({ infoAkademik: res.data });
 		} catch (error: unknown) {
-			if (error instanceof Error) console.error("Error during getInfoAkademik:", error);
+			console.error("Error during getInfoAkademik:", extractAxiosMessage(error));
 		}
 	},
-
 }));

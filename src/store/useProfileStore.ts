@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { axiosInstance } from "@/lib/axios";
+import { extractAxiosMessage } from "@/lib/utils";
 import type { ResponseProfile } from "@/types";
 
 interface ProfileStore {
@@ -32,7 +33,7 @@ export const useProfileStore = create<ProfileStore>((set) => ({
       );
       set({ infoUser: res.data });
     } catch (error: unknown) {
-      console.error("Error during getInfoUser:", error);
+      console.error("Error during getInfoUser:", extractAxiosMessage(error));
       set({ infoUser: null });
     }
   },

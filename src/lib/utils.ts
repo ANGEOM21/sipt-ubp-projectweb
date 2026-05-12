@@ -9,15 +9,20 @@ type ApiErrorBody = {
 
 export function extractAxiosMessage(err: AxiosError<ApiErrorBody> | Error | unknown): string {
   if (axios.isAxiosError<ApiErrorBody>(err)) {
-    const apiMsg = err.response?.data?.message;
-    return apiMsg ?? err.message ?? "Terjadi kesalahan jaringan";
+    // SIPT API often uses 'messages' (plural) instead of 'message'
+    const apiMsg = err.response?.data?.message || err.response?.data?.messages;
+    if (Array.isArray(apiMsg)) return apiMsg[0];
+    return typeof apiMsg === "string" ? apiMsg : (err.message ?? "Terjadi kesalahan jaringan");
   }
   if (err instanceof Error) return err.message;
   return "Terjadi kesalahan yang tidak diketahui";
 }
 
 export function setAuthHeaderFromToken(token: string | null) {
-  if (!token) return;
+  if (!token) {
+    delete axiosInstance.defaults.headers.common["Authorization"];
+    return;
+  }
   axiosInstance.defaults.headers.common["Authorization"] = token;
 }
 
