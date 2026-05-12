@@ -3,6 +3,7 @@ import { axiosInstance } from "./axios";
 
 type ApiErrorBody = {
   message?: string;
+  messages?: string | string[];
   errors?: Record<string, string[] | string>;
   status_code?: string | number;
 };
