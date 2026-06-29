@@ -103,6 +103,21 @@ const NilaiMahasiswa = () => {
     resetNilai();
   }
 
+  const [modalEmail, setModalEmail] = useState('');
+  
+  const {
+    isKuisionerModalOpen,
+    closeKuisionerModal,
+    submitAutoKuisioner
+  } = useNilaiMhsStore();
+
+  const handleModalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (modalEmail) {
+      submitAutoKuisioner(modalEmail);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-base-100">
       <Topbar />
@@ -456,6 +471,43 @@ const NilaiMahasiswa = () => {
           )}
         </div>
       </div>
+
+      {/* Kuisioner Modal */}
+      {isKuisionerModalOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg text-primary">Konfirmasi Auto-Isi Kuisioner</h3>
+            <p className="py-4">
+              Transkrip terkunci karena ada kuisioner yang belum diisi.
+              Masukkan email Anda untuk memproses pengisian kuisioner secara otomatis (Nilai Sangat Baik).
+            </p>
+            <form onSubmit={handleModalSubmit}>
+              <div className="form-control mb-4">
+                <label className="label">
+                  <span className="label-text font-semibold">Alamat Email</span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="Masukkan email Anda"
+                  className="input input-bordered w-full"
+                  value={modalEmail}
+                  onChange={(e) => setModalEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="modal-action">
+                <button type="button" className="btn btn-ghost" onClick={closeKuisionerModal}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={!modalEmail}>
+                  Sikat Kuisioner!
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );
